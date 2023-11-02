@@ -7,7 +7,20 @@ import scipy.signal
 import tf_clahe
 rg = tf.random.Generator.from_seed(1, alg='philox')
 
-def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=False, complex_transform=0,phases=None,regsnr=0,sigma_coil=4, addmotion=0,apply_filter=0,kernel_size=0,add_phase=0,image_adjustment=[0,1],clahe=False):
+## Default config
+def config_default(base_resolution,phases):
+  return {'base_resolution':base_resolution, 
+          'phases':phases,
+          'masking':True,
+          'regsnr':[12,22],
+          'sigma_coil':[2,6],
+          'complex_transform':4,
+          'num_coils':[30],
+          'add_phase':2,
+          }
+
+## Main Preprocessing Function
+def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=False, complex_transform=0,phases=None,regsnr=0,sigma_coil=4,add_phase=0,image_adjustment=[0,1],clahe=False):
   """Returns a preprocessing function for training."""
   def _preprocessing_fn(tfds_video):
     """From jpg to formatted kspace of image.
@@ -30,10 +43,8 @@ def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=
         phases=tf.shape(image_series[0])
       image_series=tfmri.resize_with_crop_or_pad(image_series,shape=[phases,base_resolution,base_resolution,-1])
       if clahe:
-        #print(image_series.shape)
         image_series=tf_clahe.clahe(image_series, gpu_optimized=True)
-        #image_series=fast_clahe(image_series)
-      #image_series=tf.cast(image_series,tf.float32)
+
       image_series=tfmri.scale_by_min_max(image_series)
       #Contrast adjustments
       nonlocal image_adjustment
@@ -61,14 +72,7 @@ def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=
       smaps=simulate_coils(base_resolution,sigma_coil,num_coils,coil_size=base_resolution*2,add_phase=add_phase,ngrid=2)
       if masking:
         smaps=smaps*tf.expand_dims(tf.cast(mask,image_series.dtype),axis=0)
-      #Apply Filter on the corners
-      nonlocal kernel_size
-      if kernel_size==0:
-            kernel_size=base_resolution
-      if apply_filter>0:
-        temp=tukey_kernel(1,kernel_size,sigma=apply_filter)
-        temp=tfmri.resize_with_crop_or_pad(temp,[base_resolution,base_resolution,1])
-        image_series=image_series*tf.cast(tf.expand_dims(temp[...,0],axis=0),dtype=tf.complex64)
+
       #Add background phase to the object
       if add_phase>0:
           image_series=_backgroundphase(image_series)
@@ -103,12 +107,11 @@ def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=
 
   return _preprocessing_fn
 
-
+## Support Functions 
 def gauss_kernel(channels, kernel_size, sigma):
         ax = tf.range(-kernel_size // 2 + 1.0, kernel_size // 2 + 1.0)
         axy = tf.range(-kernel_size // 2 + 1.0, kernel_size // 2 + 1.0)
         xx, yy = tf.meshgrid(ax, ax)
-        #kernel = tf.exp(-(xx ** 2 + yy ** 2) / (2.0 * sigma ** 2))
         kernel = tf.exp(-xx ** 2  / (2.0 * sigma[0] ** 2)- yy ** 2/ (2.0 * sigma[1] ** 2))
         kernel = kernel / tf.reduce_sum(kernel)
         kernel = tf.tile(kernel[..., tf.newaxis], [1, 1, channels])
@@ -117,18 +120,22 @@ def gauss_kernel(channels, kernel_size, sigma):
 def _backgroundphase(image, ngrid=6,scaling=1):
     #Adds random background phase to already complex images Fixed along 1st (time) dimension
     siz=(ngrid,)*2
-    arr = rg.uniform(siz)*2*scaling#*math.pi
-    #arr = zoom(arr, size[0]/6)
+    arr = rg.uniform(siz)*2*scaling
     arr=tf.expand_dims(tf.expand_dims(arr,axis=0),axis=-1)
     arr=tf.image.resize( arr,  image.shape[1:],'bicubic')
-    #arr=tf.image.crop_and_resize(arr,[[0,0,5,5]],[0],image.shape[1:])
     arr=arr[...,0]
-    #arr=skimage.transform.resize(arr, image.shape[1:],order=3)
+
     randphase=(arr + rg.uniform((1,))*2*math.pi)
     image= image*tf.exp(1j*tf.cast(randphase,tf.complex64))
     return image
 
 def simulate_coils(base_resolution,sigma_coil,num_coils,coil_size=None,add_phase=0,ngrid=6):
+      """
+      Coil Simulation function
+      Creates num_coils, with gaussian magnitude and random phase.
+      2D Gaussians spreads according to sigma coil (can be a range selects random values in that range for x and y)
+      """
+    
       if coil_size is None:
            coil_size=base_resolution
       # Simulate coil sensitivity maps
@@ -139,9 +146,7 @@ def simulate_coils(base_resolution,sigma_coil,num_coils,coil_size=None,add_phase
       else:
             total_coils=num_coils[0]
             nsim=num_coils[0]
-      #total_coils = num_coils
-      
-      #base =tf.clip_by_value(base/tf.reduce_max(base), 0.0, 0.3) # flat top sensitivity
+      #Create nsim coils and selects randomly total_coils (if range of coils provided nsim and total coils is different)
       for coil in range(nsim):
           if len(sigma_coil)==2:
             sigma_x=rg.uniform(shape=(1,), minval=sigma_coil[0], maxval=sigma_coil[1])
@@ -151,11 +156,9 @@ def simulate_coils(base_resolution,sigma_coil,num_coils,coil_size=None,add_phase
                sigmas=[base_resolution/sigma_coil[0],base_resolution/sigma_coil[0]]
 
           base = gauss_kernel(2,coil_size, sigma = sigmas)
-          #random_phase=tf.cast(rg.uniform(shape=(1,), minval=0, maxval=math.pi),dtype=tf.complex64)
           random_phase=tf.cast(rg.uniform(shape=(1,), minval=-math.pi, maxval=math.pi),dtype=tf.complex64)
           random_intensity=tf.cast(rg.uniform(shape=(1,), minval=0.1, maxval=1),dtype=tf.complex64)
-          # # coils in random positions (a bit away from the edges)
-          # transform=tf.cast(rg.uniform(shape=(2,), minval=-base_resolution//3, maxval=base_resolution//3),dtype=tf.float32)
+
           # coils in random positions (excluding center)
           transform=tf.cast(rg.uniform(shape=(2,), minval=base_resolution//5, maxval=base_resolution//2),dtype=tf.float32)
           random_locations=tf.cast(rg.uniform(shape=(2,),minval=-1,maxval=9,dtype=tf.int32),dtype=tf.float32)
@@ -174,9 +177,8 @@ def simulate_coils(base_resolution,sigma_coil,num_coils,coil_size=None,add_phase
       smaps = tf.gather(smaps, ridxs,axis=axis)
       smaps=tf.stack(smaps,axis=0)
       sos_smaps=tf.abs(tf.sqrt(tf.reduce_sum(smaps*tf.math.conj(smaps),axis=0)))
-      #smaps=tf.complex(smaps[:,:,:,0],smaps[:,:,:,1])
-      #sos_smaps=tf.cast(sos_smaps,tf.complex64)
       smaps = smaps / tf.cast(tf.reduce_max(sos_smaps),tf.complex64)
+
       return smaps
 
 def tukey_kernel(channels, kernel_size, sigma=0.5):
@@ -185,39 +187,6 @@ def tukey_kernel(channels, kernel_size, sigma=0.5):
         kernel = tf.sqrt(tf.tensordot(window1d,window1d,axes=0))
         kernel = tf.tile(kernel[..., tf.newaxis], [1, 1, channels])
         return kernel
-
-
-
-#@tf.function
-def _geometric_augmentation(image,phases,motion_proba=0.5,motion_ampli=0.8,maxrot=45.0):
-  transform=tf.zeros((tf.shape(image)[0],2))
-  image_size=tf.shape(image)
-  if rg.uniform(shape=())<motion_proba:
-    displacement=[]
-    for idxdisp in range(phases):
-        if idxdisp%5==0:
-            transform=rg.uniform(shape=(2,1), minval=-motion_ampli, maxval=motion_ampli)
-        else:
-            transform=transform
-        if idxdisp==0:
-            displacement.append(tf.cast([[0], [0]],tf.float32))
-        else:
-            displacement.append(transform+displacement[idxdisp-1])
-
-    transform=tf.stack(displacement)
-    transform=tf.squeeze(transform)
-    #print(image.shape,transform.shape,transform.dtype)
-    image=tfa.image.translate(image,transform,'bilinear' )
-
-  if maxrot>0:
-    #ROTATION
-    rotationangle=rg.uniform(shape=(),minval=-maxrot,maxval=maxrot)
-    
-    image=tfa.image.rotate(image, angles=rotationangle,interpolation='bilinear')
-    cpx_size=tf.shape(image)
-    image=image[:,cpx_size[1]//2-image_size[1]//2:(cpx_size[1]//2-image_size[1]//2+image_size[1]),
-            cpx_size[2]//2-image_size[2]//2:(cpx_size[2]//2-image_size[2]//2+image_size[2]),...]
-  return image
 
 def _awgn(data, regsnr,cpx=False): 
     """
@@ -238,35 +207,20 @@ def _awgn(data, regsnr,cpx=False):
 def elliptical_mask(shape):
   import cv2
   # Window name in which image is displayed
-  # Color in BGR
+  # Color in RGB
   color = (1, 1, 1)
   shape=shape.numpy()
   mask=np.zeros(np.concatenate((shape,[3,])),dtype=np.int32)
   center_coordinates = (shape[-2]//2, shape[-1]//2)
   axesLength = (int(shape[-2]//2*rg.uniform(shape=(),minval=1.0, maxval=1.4)), int(shape[-1]//2*0.8*rg.uniform(shape=(),minval=0.8, maxval=1.2)))
-  #axesLength = (int(shape[-2]//2*1.4), int(shape[-1]//2))
   angle = int(rg.uniform(shape=(),minval=0, maxval=360))
   startAngle = 0
   endAngle = 360
   # Line thickness of -1 px (fills the ellipse)
   thickness = -1
-  #print(mask.shape,axesLength)
+
   # Using cv2.ellipse() method
   # Draw a ellipse with blue line borders of thickness of -1 px
   mask = cv2.ellipse(mask, center_coordinates, axesLength, angle,
                           startAngle, endAngle, color, thickness)
-  # # Create an elliptic hole within the ellipse
-  # mask2=np.zeros(np.concatenate((shape,[3,])),dtype=np.int32)
-  # center_coordinates2 = (int(shape[-2]//2*(1+rg.uniform(shape=(),minval=-0.8, maxval=0.8))), int(shape[-1]//2*(1+rg.uniform(shape=(),minval=-0.8, maxval=0.8))))
-  # hole_size_factor = 4
-  # axesLength2 = (int(shape[-2]//2*rg.uniform(shape=(),minval=1.0, maxval=1.4))//hole_size_factor, 
-  #                int(shape[-1]//2*0.8*rg.uniform(shape=(),minval=0.8, maxval=1.2))//hole_size_factor)
-  
-  # mask2 = cv2.ellipse(mask2, center_coordinates2, axesLength2, angle,
-  #                         startAngle, endAngle, color, thickness)
-  # mask[mask2>0]=0
   return mask[:,:,0]
-
-@tf.function(experimental_compile=True)  # Enable XLA
-def fast_clahe(img):
-    return tf_clahe.clahe(img, gpu_optimized=True)

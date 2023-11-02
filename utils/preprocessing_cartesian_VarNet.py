@@ -1,29 +1,20 @@
 import tensorflow as tf
 import tensorflow_mri as tfmri
 import tensorflow_nufft as tfft
-from utils.subsample_cartesian import create_mask_for_mask_type
+
 rg = tf.random.Generator.from_seed(1, alg='philox')
 
+## Default config
 def config_base_preproc():
     config={'base_resolution': 240,
-            'phases': 12,
+            'phases': 24,
             'roll': 0,
             'normalize_input': False,
+            'input_format': 'coil_compressed',
     }
     return config
 
-def config_fastdvdnet_preproc():
-    config={'base_resolution': 240,
-            'phases': 12,
-            'roll': 0,
-            'input_format': 'abs',
-            'output_format': 'abs',
-            'normalize_input': False,
-            'accelerations': [14],
-            'center_fractions': [4],
-    }
-    return config
-
+## Main Preprocessing Function
 def preprocessing_fn(base_resolution=128,
                       phases=20,roll=0,normalize_input=False,input_format='coil_compressed'):
   """Returns a preprocessing function for training."""
@@ -116,6 +107,7 @@ def preprocessing_fn(base_resolution=128,
             "f": tf.cast(uskspace,tf.float32),
             "coil_sens": tf.cast(sensitivities,tf.float32),
             "sampling_mask":  tf.cast(mask,tf.float32)}
+    
     targets=tf.cast(image,tf.float32)
     dataset_list = [
                       tf.where(tf.math.is_nan(inputs2["u_t"]), 0., inputs2["u_t"]),
@@ -123,18 +115,14 @@ def preprocessing_fn(base_resolution=128,
                       tf.where(tf.math.is_nan(inputs2["coil_sens"]), 0., inputs2["coil_sens"]),
                       tf.where(tf.math.is_nan(inputs2["sampling_mask"]), 0., inputs2["sampling_mask"]),
                       tf.where(tf.math.is_nan(targets), 0., targets),
-
-                      # tf.cast(inputs2["u_t"],tf.float32),
-                      # tf.cast(inputs2["f"],tf.float32),
-                      # tf.cast(inputs2["coil_sens"],tf.float32),
-                      # tf.cast(inputs2["sampling_mask"],tf.float32),
-                      # tf.cast(targets,tf.float32),
                     ]
-    # for ii,_ in enumerate(dataset_list):
-    #    print(dataset_list[ii].shape)
+
     return dataset_list  
   
-  def make_fs_rtcine_image(kspace, image_shape, roll=0,phases=20,  keep_external_signal=False):
+  return _preprocessing_fn
+
+## Support Function
+def make_fs_rtcine_image(kspace, image_shape, roll=0,phases=20,  keep_external_signal=False):
     """Returns a fully sampled image from k-space."""
     kspace=tf.ensure_shape(kspace,(None,) * 4)
     # Crop to fixed size and normalize pixel intensities (in image space).
@@ -158,21 +146,4 @@ def preprocessing_fn(base_resolution=128,
     # `image` is now a fully-sampled multicoil multi-phase image.
     image = tfmri.resize_with_crop_or_pad(image, image_shape)
     return image
-
-  def gaussian_blur(img, kernel_size=11, sigma=0.5):
-    def gauss_kernel(channels, kernel_size, sigma):
-        ax = tf.range(-kernel_size // 2 + 1.0, kernel_size // 2 + 1.0)
-        xx, yy = tf.meshgrid(ax, ax)
-        kernel = tf.exp(-(xx ** 2 + yy ** 2) / (2.0 * sigma ** 2))
-        kernel = kernel / tf.reduce_sum(kernel)
-        kernel = tf.tile(kernel[..., tf.newaxis], [1, 1, channels])
-        return kernel
-
-    gaussian_kernel = gauss_kernel(tf.shape(tf.expand_dims(img,axis=-1))[-1], kernel_size, sigma)
-    gaussian_kernel = gaussian_kernel[..., tf.newaxis]
-    outimage=tf.nn.depthwise_conv2d(tf.expand_dims(img,axis=-1), gaussian_kernel, [1, 1, 1, 1],
-                                  padding='SAME', data_format='NHWC')
-    return outimage[...,0]
-    
-  return _preprocessing_fn
 

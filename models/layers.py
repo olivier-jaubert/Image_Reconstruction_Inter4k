@@ -15,11 +15,10 @@
 """Work-in-progress layers."""
 
 import tensorflow as tf
-import model.conv_blocks as local_conv_blocks
+import models.conv_blocks as local_conv_blocks
 from tensorflow_mri.python.util import check_util
 from tensorflow_mri.python.util import layer_util
 
-@tf.keras.utils.register_keras_serializable(package='Playground')
 class TimeUNet(tf.keras.layers.Layer):
   """A TimeUNet layer. (time distributed 2D Unet)
   Args:
@@ -345,7 +344,6 @@ class TimeUNet(tf.keras.layers.Layer):
     base_config = super().get_config()
     return {**base_config, **config}       
     
-@tf.keras.utils.register_keras_serializable(package='Playground')
 class FastDVDNet(tf.keras.layers.Layer):
   """A FastDVDNet model. 
   Args:

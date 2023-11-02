@@ -1,12 +1,12 @@
 import tensorflow as tf
 import tensorflow_mri as tfmr
 import tensorflow_nufft as tfft
-
 rg = tf.random.Generator.from_seed(1, alg='philox')
 
+# Default config
 def config_base_preproc():
     config={'base_resolution': 240,
-            'phases': 12,
+            'phases': 24,
             'roll': 0,
             'input_format': 'coil_compressed',
             'output_format': 'abs',
@@ -14,6 +14,7 @@ def config_base_preproc():
     }
     return config
 
+# Main Preprocessing Function
 def preprocessing_fn(base_resolution=128,
                       phases=20,roll=0,output_format=None,input_format=None,gfilt=None,normalize_input=True,return_kspace=False):
   """Returns a preprocessing function for training."""
