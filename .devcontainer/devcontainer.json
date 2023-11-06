@@ -1,0 +1,28 @@
+{
+	"dockerFile": "./Dockerfile",
+	"context": "..",
+	"settings": {},
+	"extensions": [
+		"ms-python.python",
+		"github.copilot"
+	],
+	"runArgs": [
+		// Enable GPUs.
+		"--gpus=all"
+	],
+	"mounts": [
+		// For plotting.
+		"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
+		// // Datasets.
+		// "type=bind,source=${localEnv:STORAGE}/tensorflow_datasets,target=/datasets",
+		// // To use local TensorFlow MRI.
+		// "type=bind,source=${localEnv:HOME}/dev/mrphys/tensorflow-mri,target=/workspaces/tensorflow-mri"
+	],
+	// // To use local TensorFlow MRI.
+	// "postCreateCommand": "pip install -e /workspaces/tensorflow-mri",
+	"containerEnv": {
+		// For plotting.
+		"DISPLAY": "${localEnv:DISPLAY}"
+	},
+	"remoteUser": "vscode"
+}

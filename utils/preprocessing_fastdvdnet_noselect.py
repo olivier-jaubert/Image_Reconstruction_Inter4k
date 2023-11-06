@@ -15,7 +15,7 @@ def config_base_preproc():
     return config
 
 def preprocessing_fn(base_resolution=128,
-                      phases=20,roll=0,maxcoils=None,output_format=None,input_format=None,gfilt=None,normalize_input=True):
+                      phases=20,roll=0,output_format=None,input_format=None,normalize_input=True):
   """Returns a preprocessing function for training."""
   
   def _preprocessing_fn(inputs):
@@ -40,7 +40,6 @@ def preprocessing_fn(base_resolution=128,
       image_shape = [base_resolution, base_resolution]
       # Make fully sampled multicoil image.
       image = make_fs_rtcine_image(kspace, image_shape, roll=roll, phases=phases,keep_external_signal=False)
-      #print(image.shape,kspace.shape)
 
       # Combine coils and normalize ground truth images.
       ccimage = tfmr.coils.combine_coils(image, coil_axis=-3) 
@@ -82,8 +81,6 @@ def preprocessing_fn(base_resolution=128,
         zfill = tfmr.scale_by_min_max(zfill)  # range [0, 1]
       
       zfill=tf.transpose(zfill,[1,2,0]) #height width time (time as channels)
-      if gfilt is not None:
-        image=tf.expand_dims(tf.complex(gaussian_blur(tf.math.real(image[0,...]),sigma=gfilt),gaussian_blur(tf.math.imag(image[0,...]),sigma=gfilt)),axis=0)
       image=tf.transpose(image,[1,2,0]) #height width time (time as channels)
 
       if input_format is not None and input_format=='abs':
@@ -124,21 +121,35 @@ def preprocessing_fn(base_resolution=128,
     # `image` is now a fully-sampled multicoil multi-phase image.
     image = tfmr.resize_with_crop_or_pad(image, image_shape)
     return image
-
-  def gaussian_blur(img, kernel_size=11, sigma=0.5):
-    def gauss_kernel(channels, kernel_size, sigma):
-        ax = tf.range(-kernel_size // 2 + 1.0, kernel_size // 2 + 1.0)
-        xx, yy = tf.meshgrid(ax, ax)
-        kernel = tf.exp(-(xx ** 2 + yy ** 2) / (2.0 * sigma ** 2))
-        kernel = kernel / tf.reduce_sum(kernel)
-        kernel = tf.tile(kernel[..., tf.newaxis], [1, 1, channels])
-        return kernel
-
-    gaussian_kernel = gauss_kernel(tf.shape(tf.expand_dims(img,axis=-1))[-1], kernel_size, sigma)
-    gaussian_kernel = gaussian_kernel[..., tf.newaxis]
-    outimage=tf.nn.depthwise_conv2d(tf.expand_dims(img,axis=-1), gaussian_kernel, [1, 1, 1, 1],
-                                  padding='SAME', data_format='NHWC')
-    return outimage[...,0]
-
   return _preprocessing_fn
 
+
+def rolling_fn(phases=5,roll=1,selected_image2=-1):
+  """Returns a preprocessing function for training."""
+  
+  def _preprocessing_fn(zfill,image):
+    """Preprocess the data.
+    Roll and select nphases from zero filled images and image $selected_image2 (last image for lowest latency) 
+    Args:
+      inputs: Input data. A dict containing the following keys:
+        - 'zfill': Zero filled images A tensor of shape [height, width,time].
+        - 'image': Ground truth images A tensor of shape [height, width,time]
+    Returns:
+      A tuple (zerofilled image, ground truth image).
+    """
+    if roll>0:
+        shift_im=rg.uniform(shape=(), minval=0, maxval=tf.shape(image)[-1]-phases, dtype=tf.int32)
+        image=tf.roll(image,shift=-shift_im,axis=-1)
+        zfill=tf.roll(zfill,shift=-shift_im,axis=-1)
+      
+    image=image[...,:phases]
+    zfill=zfill[...,:phases]
+    
+    if selected_image2 is not None: 
+      image=tf.expand_dims(image[...,selected_image2],axis=-1)
+    #get rid of nans
+    image = tf.where(tf.math.is_nan(image), 0., image)
+    zfill = tf.where(tf.math.is_nan(zfill), 0., zfill)
+    return zfill, image  # input (features), output (labels)
+      
+  return _preprocessing_fn

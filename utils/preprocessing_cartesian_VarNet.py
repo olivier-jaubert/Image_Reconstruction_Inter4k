@@ -20,7 +20,6 @@ def preprocessing_fn(base_resolution=128,
   """Returns a preprocessing function for training."""
   def _preprocessing_fn(inputs):
     """Preprocess the data.
-
     Takes a fully sampled image, resamples k-space onto an arbitrary trajectory and
     returns the zerofilled and the ground truth image.
 
@@ -28,7 +27,6 @@ def preprocessing_fn(base_resolution=128,
       inputs: Input data. A dict containing the following keys:
         - 'kspace': A tensor of shape [nslices,ncoils,time, height, width].
         - 'traj': A dictionary containing 'traj': trajectory [time,nspirals,nreadout,xypos]
-
     Returns:
       A tuple (zerofilled image, ground truth image).
     """

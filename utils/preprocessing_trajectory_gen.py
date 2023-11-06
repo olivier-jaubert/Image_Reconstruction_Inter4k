@@ -24,6 +24,16 @@ def config_optimized_traj():
     }
     return config
 
+def config_radial_traj():
+    config={'radial_spokes':13,
+        'base_resolution': 256,
+            'field_of_view': 400,
+            'phases': 32,
+            'ordering': 'tiny_half',  
+            'reverse': True,
+    }
+    return config
+
 def gen_spiral_traj(
     base_resolution=256,
 	field_of_view=400,phases=1,
@@ -155,16 +165,6 @@ def create_traj_fn( radial_spokes=0,
             'ordering': ordering,
             }
             traj = tfmri.sampling.radial_trajectory(**traj_params)
-            # # For radial trajectories, this method is more accurate.
-            # dens_shape = traj.shape[:-1].as_list()
-            # traj_shape = traj.shape.as_list()
-            # num_samples = int(base_resolution * readoutOS)
-            # traj_shape.insert(-3, traj.shape[-2] // num_samples)
-            # traj_shape[-2] = num_samples
-            # dens = tf.reshape(tfmri.sampling.estimate_radial_density(
-            #                 tf.reshape(traj, traj_shape), readout_os=readoutOS),
-            #                 dens_shape)
-            #dens= tfmri.radial_density(**traj_params)
             dens = tfmri.sampling.estimate_radial_density(traj)
             dcw = tf.math.divide_no_nan(1.0,dens)
             time_for_an_arm=(min_max_arm_time[1]+min_max_arm_time[0])/2

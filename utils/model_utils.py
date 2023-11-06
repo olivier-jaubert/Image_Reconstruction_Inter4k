@@ -15,7 +15,7 @@ def default_configs(model_type,DEBUG=False):
                     'activation': lambda x:tf.keras.activations.relu(x,alpha=0.1),
                     'kernel_initializer': tf.keras.initializers.HeUniform(seed=1)}
     elif model_type=='3DUNet':
-        config_model= {'filters': [64,92,128],
+        config_model= {'filters': [16,16] if DEBUG else [64,92,128],
                     'block_depth': 2,
                     'kernel_size': 3,
                     'activation': lambda x: tf.keras.activations.relu(x,alpha=0.1),
@@ -71,15 +71,17 @@ def load_models(inputs,model_type,config_model=dict(),DEBUG=False):
         _ = model(inputs)
 
     elif model_type == '3DUNet':
-
+        inputs=inputs[0]
+        print(inputs.shape)
         #Define and compile Model
-        shape_input=(None,inputs.shape[-3],inputs.shape[-2],inputs.shape[-1])
-        image_inputs= tf.keras.Input(shape_input)
+        shape_input=(inputs.shape[-4],inputs.shape[-3],inputs.shape[-2],inputs.shape[-1])
+        image_inputs= tf.keras.Input(shape_input,batch_size=inputs.shape[-5])
         outputs=tfmri.models.UNet3D(**config_model)(image_inputs)
         model=tf.keras.Model(inputs=image_inputs,outputs=outputs) 
     
     elif model_type == 'FastDVDNet':
-
+        inputs=inputs[0]
+        print(inputs.shape)
         #Define and compile Models
         shape_input=(inputs.shape[-3],inputs.shape[-2],5)
         image_inputs= tf.keras.Input(shape_input)

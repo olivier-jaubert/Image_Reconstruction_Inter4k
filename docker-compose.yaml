@@ -1,0 +1,28 @@
+version: '3.9'
+services:
+  tensorflow:
+    build:
+      context: ./.devcontainer
+    image: ${USER}/${PROJECT_NAME}
+    volumes:
+      - type: bind
+        source: /home/oj20/UCLjob/Project_Video/Datasets/
+        target: /datasets
+      - type: bind
+        source: /home/oj20/UCLjob/
+        target: /host/
+      - type: bind
+        source: .
+        target: /workspaces/${PROJECT_NAME}
+
+    #command: ["/workspaces/${PROJECT_NAME}/command.sh"]
+    #command: pwd
+    command: nohup python /workspaces/${PROJECT_NAME}/train_VarNet.py > trainVarNet.log & 
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    environment:
+      - CUDA_VISIBLE_DEVICES
