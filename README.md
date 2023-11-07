@@ -16,9 +16,9 @@ Three networks and trajectories were investigated:
 
 https://github.com/olivier-jaubert/Image_Reconstruction_Inter4k/assets/68073827/be038e26-7f36-4ff6-8b40-b6e0bdf47c11
 
-RGB Video, Undersampled Cartesian, Undersampled Radial, Undersampled Spiral.
+- Top Line: RGB Video, Undersampled Cartesian, Undersampled Radial, Undersampled Spiral.
 
-Target,    VarNet Reconstruction, multicoil 3DUNet Reconstruction, FastDVDNet Reconstruction.
+- Bottom Line: Target,    VarNet Reconstruction, multicoil 3DUNet Reconstruction, FastDVDNet Reconstruction.
 
 
 Provided code includes trajectories, model training and pre-trained models as implemented for the paper.
