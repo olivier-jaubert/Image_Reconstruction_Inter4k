@@ -7,10 +7,6 @@ Synopsis:
 Images from Inter4K \[1\]: a high spatio-temporal resolution publicly available natural video dataset 
 are used to learn Dynamic MR image reconstruction.
 
-
-https://github.com/olivier-jaubert/Image_Reconstruction_Inter4k/assets/68073827/be038e26-7f36-4ff6-8b40-b6e0bdf47c11
-
-
 Methods can be found in \[link\].
 
 Three networks and trajectories were investigated: 
