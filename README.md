@@ -4,7 +4,8 @@ Investigating the use of high spatio-temporal resolution publicly available natu
 Synopsis: 
 ---------
 
-We use Inter4K \[1\] a high spatio-temporal resolution publicly available natural video dataset to learn Dynamic MR image reconstruction.
+Images from Inter4K \[1\]: a high spatio-temporal resolution publicly available natural video dataset 
+are used to learn Dynamic MR image reconstruction.
 
 Methods can be found in \[link\].
 
@@ -12,6 +13,13 @@ Three networks and trajectories were investigated:
 - Cartesian real-time with unrolled VarNet \[2\]
 - Radial real-time with multicoil UNet
 - Low latency spiral imaging with FastDVDNet (Hyperslice \[3\]) 
+
+https://github.com/olivier-jaubert/Image_Reconstruction_Inter4k/assets/68073827/be038e26-7f36-4ff6-8b40-b6e0bdf47c11
+
+RGB Video, Undersampled Cartesian, Undersampled Radial, Undersampled Spiral
+Target,    VarNet Reconstruction, multicoil 3DUNet Reconstruction, FastDVDNet Reconstruction
+
+
 Provided code includes trajectories, model training and pre-trained models as implemented for the paper.
 
 The ethics does not allow sharing medical image data therefore only Inter4K data and models are made available. 
