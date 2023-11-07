@@ -63,4 +63,4 @@ ARG TFMRI_VERSION=0.22.0
 RUN pip install tensorflow-datasets tensorflow-addons tensorboard tensorflow_mri==$TFMRI_VERSION
 
 # Install additional packages.
-RUN pip install ffmpeg-python scipy scikit-learn scikit-image ipykernel google-api-python-client pydicom jupyter opencv-python
+RUN pip install ffmpeg-python scipy scikit-learn scikit-image ipykernel google-api-python-client pydicom jupyter opencv-python gdown

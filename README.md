@@ -31,15 +31,19 @@ Installation
 ============
 
 For installation please:
-1) download github repository
-2) Download Inter4K Dataset and unzip in DatasetFolder (see DatasetFolder/README.md, )
-3) Create Docker image and run test training via:
-        ``` 
-        docker compose up --build
-        ```
-
+1) Download github repository.
+2) Create Docker image and download and unzip Inter4K Dataset in DatasetFolder (see DatasetFolder/README.md if does not work): 
+```
+docker compose up --build
+```   
 This will run the command in the docker-compose.yaml file:
--   command: python train_network.py -m 3DUNet --debug
+-   command: python download_Inter4k_Dataset.py
+
+3) Test training by changing the command in the docker-compose.yaml file.
+Then run:
+``` 
+docker compose up --build
+```
 
 Which can be modified to :
 

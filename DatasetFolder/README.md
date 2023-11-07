@@ -5,18 +5,9 @@ Dataset Inter4K Download
 Download via python (not always working):
 =========================================
 Run from project folder following python code:
-    ```
-    import os
-    import gdown
-    # DESTINATION FILE ON YOUR DISK
-    folder = 'DatasetFolder'
-    os.makedirs(folder,exist_ok=True)
-    destination = os.path.join(folder,'Inter4K.zip')
-    url = "https://drive.google.com/u/0/uc?id=1YNdzhk0mxFln9_2MetHF1cJIsoeVCskh&export=download"
-    gdown.download(url, destination, quiet=False)
-
-    os.system("unzip " + destination + " -d "+folder)
-    ```
+```
+python download_Inter4k_Dataset.py
+```
 
 If the following error message appears please:
 

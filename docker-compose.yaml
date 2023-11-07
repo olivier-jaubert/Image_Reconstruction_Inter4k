@@ -10,7 +10,7 @@ services:
         source: .
         target: /workspaces/${PROJECT_NAME}
     working_dir: /workspaces/${PROJECT_NAME}
-    command: python train_network.py -m 3DUNet --debug
+    command: python download_Inter4k_Dataset.py
     deploy:
       resources:
         reservations:
