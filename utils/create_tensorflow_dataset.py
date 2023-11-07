@@ -80,276 +80,6 @@ def split_training_test_set(folder_name,n=692,split=[0.75,0.10,0.15],verbose=1):
             '/',len(train_files),'/',len(val_files),'/',len(test_files),'leftovers:',n-ntrain-nval-ntest)
     return [train_files,val_files,test_files]
 
-
-def generate_dataset_VarNet(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
-    """
-    Inputs:
-    datasets: list of files [train_files,val_files,test_files]
-    dataset_dir: path to cached data
-    reset: 0,1 or 2 -> 0 resuses cached data if exists / 1 cleans previously cached data after Resizing of Inter4k Data / 2 cleans all previously cached data  
-    Returns:
-    datasets_withtransforms: tf.Data.Dataset objects with transformation from videos to inputs to FastDVDnet
-    """
-    if config_preproc is None:
-        config_preproc=preproc_varnet.config_base_preproc()
-    if config_natural_images is None:
-        config_natural_images=preprocessing_natural_videos.config_default(config_preproc['base_resolution'],config_preproc['phases'])
-              
-    if config_traj is None:
-        config_traj={'acc':14,
-        'phases':15,
-        'center_lines':8,
-        'half_fourier':0.6,
-        'mask_type':'noreselect'}
-    
-
-    print('Config natural image to kspace:',config_natural_images,
-              '\nConfig preprocessing:',config_preproc,
-              '\nConfig traj:',config_traj)
-    
-    #Define Preprocessing from natural image to kspace to network inputs
-    preproc_natural_image=preprocessing_natural_videos.preprocessing_fn(**config_natural_images)
-    #Init functions:
-    video=decode_videos(datasets[0][0])
-    video=resize_video(video,size=[244*2,244*6])
-    _=preproc_natural_image(video)
-    seed_value=7
-    mask=generate_mask(seed_value,(config_traj['phases'],1,config_preproc['base_resolution'],config_preproc['base_resolution'],1),[config_traj['acc']],[config_traj['center_lines']],half_fourier=config_traj['half_fourier'],mask_type=config_traj['mask_type'])     
-    preproc_function=preproc_varnet.preprocessing_fn(**config_preproc)
-
-    cache_initial=dataset_dir+'/cache_Inter4K_preproc/train/'
-    cache_initial_val=dataset_dir+'/cache_Inter4K_preproc/val/'
-    cache_initial_test=dataset_dir+'/cache_Inter4K_preproc/test/'
-    # Reperform resizing of Inter4K Dataset (a bit long)
-    if reset==2:
-        shutil.rmtree(cache_initial, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_initial_val, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_initial_test, ignore_errors=True, onerror=None)
-    os.makedirs(cache_initial,exist_ok=True)
-    os.makedirs(cache_initial_val,exist_ok=True)
-    os.makedirs(cache_initial_test,exist_ok=True)
-
-    model_type_name='varnet'
-    cache_folder=dataset_dir+'/'+model_type_name+'/cache_inter4k_train/'
-    cache_folder2=dataset_dir+'/'+model_type_name+'/cache_inter4k_val/'
-    if reset>=1:
-        shutil.rmtree(cache_folder, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_folder2, ignore_errors=True, onerror=None)
-    os.makedirs(cache_folder,exist_ok=True)
-    os.makedirs(cache_folder2,exist_ok=True)
-
-    dataset_withtransforms=[]
-    for pp,dataset in enumerate(datasets):
-        dataset = tf.data.Dataset.from_tensor_slices(
-            tf.convert_to_tensor(list(map(str, dataset)), dtype=tf.string))
-        dataset=dataset.map(decode_videos,num_parallel_calls=1)
-        dataset=dataset.map(functools.partial(resize_video,size=[244*2,244*6]),num_parallel_calls=1)
-        if pp==0:
-            dataset=dataset.cache(cache_initial)
-        elif pp==1:
-            dataset=dataset.cache(cache_initial_val)
-        elif pp==2:
-            dataset=dataset.cache(cache_initial_test)
-        
-        dataset=dataset.map(preproc_natural_image,num_parallel_calls=1)
-
-        dataset_traj=tf.data.Dataset.from_tensors({'mask':mask}).repeat(-1)
-        ds= tf.data.Dataset.zip((dataset,dataset_traj))
-        dataset = ds.map(lambda image, mask: {'image': image, 'trajectory': mask})
-        dataset=dataset.map(preproc_function,num_parallel_calls=1)
-        if pp==0:
-            dataset=dataset.cache(cache_folder)
-        if not DEBUG and pp<2:
-            dataset=dataset.shuffle(buffer_size=4,seed=1)
-        if pp==1:
-            dataset=dataset.cache(cache_folder2)
-
-        dataset=dataset.batch(1,drop_remainder=True)
-        if not DEBUG:
-            dataset=dataset.prefetch(4)
-        dataset_withtransforms.append(dataset)
-    
-    return dataset_withtransforms
-
-def generate_dataset_radial3DUNet(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
-    """
-    Inputs:
-    datasets: list of files [train_files,val_files,test_files]
-    dataset_dir: path to cached data
-    reset: 0,1 or 2 -> 0 resuses cached data if exists / 1 cleans previously cached data after Resizing of Inter4k Data / 2 cleans all previously cached data  
-    Returns:
-    datasets_withtransforms: tf.Data.Dataset objects with transformation from videos to inputs to FastDVDnet
-    """
-    if config_preproc is None:
-        config_preproc=preproc_multicoil.config_base_preproc()
-    if config_natural_images is None:
-        config_natural_images=preprocessing_natural_videos.config_default(config_preproc['base_resolution'],config_preproc['phases'])
-              
-    if config_traj is None:
-        config_traj=preproc_traj.config_radial_traj()
-    
-
-    print('Config natural image to kspace:',config_natural_images,
-              '\nConfig preprocessing:',config_preproc,
-              '\nConfig traj:',config_traj)
-    
-    #Define Preprocessing from natural image to kspace to network inputs
-    preproc_natural_image=preprocessing_natural_videos.preprocessing_fn(**config_natural_images)
-    preproc_function=preproc_multicoil.preprocessing_fn(**config_preproc)
-    roll_function=preproc_multicoil.rolling_fn(phases=24,rotation=1,input_format=config_preproc['input_format'])
-    traj_function=preproc_traj.create_traj_fn(**config_traj)
-
-    #Init functions:
-    video=decode_videos(datasets[0][0])
-    video=resize_video(video,size=[244*2,244*6])
-    kspace=preproc_natural_image(video)
-    ds0=tf.data.Dataset.from_tensors(kspace)
-    image=traj_function(ds0)
-    for element in image:
-        temp,gt_temp=preproc_function(element)
-        temp,gt_temp=roll_function(temp,gt_temp)
-
-    
-    #Defining Cache folders
-    cache_initial=dataset_dir+'/cache_Inter4K_preproc/train/'
-    cache_initial_val=dataset_dir+'/cache_Inter4K_preproc/val/'
-    cache_initial_test=dataset_dir+'/cache_Inter4K_preproc/test/'
-    # Reperform resizing of Inter4K Dataset (a bit long)
-    if reset==2:
-        shutil.rmtree(cache_initial, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_initial_val, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_initial_test, ignore_errors=True, onerror=None)
-    os.makedirs(cache_initial,exist_ok=True)
-    os.makedirs(cache_initial_val,exist_ok=True)
-    os.makedirs(cache_initial_test,exist_ok=True)
-    model_type_name='3dunet'
-    cache_folder=dataset_dir+'/'+model_type_name+'/cache_inter4k_train/'
-    cache_folder2=dataset_dir+'/'+model_type_name+'/cache_inter4k_val/'
-    if reset>=1:
-        shutil.rmtree(cache_folder, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_folder2, ignore_errors=True, onerror=None)
-    os.makedirs(cache_folder,exist_ok=True)
-    os.makedirs(cache_folder2,exist_ok=True)
-
-    dataset_withtransforms=[]
-    for pp,dataset in enumerate(datasets):
-        dataset = tf.data.Dataset.from_tensor_slices(
-            tf.convert_to_tensor(list(map(str, dataset)), dtype=tf.string))
-        dataset=dataset.map(decode_videos,num_parallel_calls=1)
-        dataset=dataset.map(functools.partial(resize_video,size=[244*2,244*6]),num_parallel_calls=1)
-        if pp==0:
-            dataset=dataset.cache(cache_initial)
-        elif pp==1:
-            dataset=dataset.cache(cache_initial_val)
-        elif pp==2:
-            dataset=dataset.cache(cache_initial_test)
-        dataset=dataset.map(preproc_natural_image,num_parallel_calls=1)
-        dataset = dataset.apply(traj_function)
-        dataset=dataset.map(preproc_function,num_parallel_calls=1)
-        if pp==0:#Training
-            dataset=dataset.cache(cache_folder)
-        dataset=dataset.map(roll_function,num_parallel_calls=1)
-        if not DEBUG and pp<2:
-            dataset=dataset.shuffle(buffer_size=4,seed=1)
-        if pp==1:#Validation
-            dataset=dataset.cache(cache_folder2)
-        dataset=dataset.batch(1,drop_remainder=True)
-        if not DEBUG:
-            dataset=dataset.prefetch(4)
-        dataset_withtransforms.append(dataset)
-    
-    return dataset_withtransforms
-
-
-def generate_dataset_FastDVDNet(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
-    """
-    Inputs:
-    datasets: list of files [train_files,val_files,test_files]
-    dataset_dir: path to cached data
-    reset: 0,1 or 2 -> 0 resuses cached data if exists / 1 cleans previously cached data after Resizing of Inter4k Data / 2 cleans all previously cached data  
-    Returns:
-    datasets_withtransforms: tf.Data.Dataset objects with transformation from videos to inputs to FastDVDnet
-    """
-    if config_preproc is None:
-        config_preproc=preproc_fastdvdnet.config_base_preproc()
-    if config_natural_images is None:
-        config_natural_images=preprocessing_natural_videos.config_default(config_preproc['base_resolution'],config_preproc['phases'])
-              
-    if config_traj is None:
-        config_traj=preproc_traj.config_optimized_traj()
-    
-
-    print('Config natural image to kspace:',config_natural_images,
-              '\nConfig preprocessing:',config_preproc,
-              '\nConfig traj:',config_traj)
-    
-    #Define Preprocessing from natural image to kspace to network inputs
-    preproc_natural_image=preprocessing_natural_videos.preprocessing_fn(**config_natural_images)
-    preproc_function=preproc_fastdvdnet.preprocessing_fn(**config_preproc)
-    roll_function=preproc_fastdvdnet.rolling_fn()
-    traj_function=preproc_traj.create_traj_fn(**config_traj)
-
-    #Init functions:
-    video=decode_videos(datasets[0][0])
-    video=resize_video(video,size=[244*2,244*6])
-    kspace=preproc_natural_image(video)
-    ds0=tf.data.Dataset.from_tensors(kspace)
-    image=traj_function(ds0)
-    for element in image:
-        temp,gt_temp=preproc_function(element)
-        temp,gt_temp=roll_function(temp,gt_temp)
-
-    
-    #Defining Cache folders
-    cache_initial=dataset_dir+'/cache_Inter4K_preproc/train/'
-    cache_initial_val=dataset_dir+'/cache_Inter4K_preproc/val/'
-    cache_initial_test=dataset_dir+'/cache_Inter4K_preproc/test/'
-    # Reperform resizing of Inter4K Dataset (a bit long)
-    if reset==2:
-        shutil.rmtree(cache_initial, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_initial_val, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_initial_test, ignore_errors=True, onerror=None)
-    os.makedirs(cache_initial,exist_ok=True)
-    os.makedirs(cache_initial_val,exist_ok=True)
-    os.makedirs(cache_initial_test,exist_ok=True)
-    model_type_name='fastdvdnet'
-    cache_folder=dataset_dir+'/'+model_type_name+'/cache_inter4k_train/'
-    cache_folder2=dataset_dir+'/'+model_type_name+'/cache_inter4k_val/'
-    if reset>=1:
-        shutil.rmtree(cache_folder, ignore_errors=True, onerror=None)
-        shutil.rmtree(cache_folder2, ignore_errors=True, onerror=None)
-    os.makedirs(cache_folder,exist_ok=True)
-    os.makedirs(cache_folder2,exist_ok=True)
-
-    dataset_withtransforms=[]
-    for pp,dataset in enumerate(datasets):
-        dataset = tf.data.Dataset.from_tensor_slices(
-            tf.convert_to_tensor(list(map(str, dataset)), dtype=tf.string))
-        dataset=dataset.map(decode_videos,num_parallel_calls=1)
-        dataset=dataset.map(functools.partial(resize_video,size=[244*2,244*6]),num_parallel_calls=1)
-        if pp==0:
-            dataset=dataset.cache(cache_initial)
-        elif pp==1:
-            dataset=dataset.cache(cache_initial_val)
-        elif pp==2:
-            dataset=dataset.cache(cache_initial_test)
-        dataset=dataset.map(preproc_natural_image,num_parallel_calls=1)
-        dataset = dataset.apply(traj_function)
-        dataset=dataset.map(preproc_function,num_parallel_calls=1)
-        if pp==0:#Training
-            dataset=dataset.cache(cache_folder)
-        dataset=dataset.map(roll_function,num_parallel_calls=1)
-        if not DEBUG and pp<2:
-            dataset=dataset.shuffle(buffer_size=4,seed=1)
-        if pp==1:#Validation
-            dataset=dataset.cache(cache_folder2)
-        dataset=dataset.batch(1,drop_remainder=True)
-        if not DEBUG:
-            dataset=dataset.prefetch(4)
-        dataset_withtransforms.append(dataset)
-    
-    return dataset_withtransforms
-
 def run_load_preproc_dataset(datasets,dataset_dir,reset=1):
     """
     Inputs:
@@ -456,7 +186,7 @@ def run_preproc_v2(datasets,dataset_dir,reset=1):
     return preproc_datasets
 
 
-def generate_dataset_VarNet_v2(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
+def generate_dataset_VarNet(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
     """
     Inputs:
     datasets: list of files [train_files,val_files,test_files]
@@ -523,7 +253,7 @@ def generate_dataset_VarNet_v2(datasets,dataset_dir,config_natural_images=None,c
     
     return dataset_withtransforms
 
-def generate_dataset_radial3DUNet_v2(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
+def generate_dataset_radial3DUNet(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
     """
     Inputs:
     datasets: list of files [train_files,val_files,test_files]
@@ -588,7 +318,7 @@ def generate_dataset_radial3DUNet_v2(datasets,dataset_dir,config_natural_images=
     
     return dataset_withtransforms
 
-def generate_dataset_FastDVDNet_v2(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
+def generate_dataset_FastDVDNet(datasets,dataset_dir,config_natural_images=None,config_preproc=None,config_traj=None,reset=1,DEBUG=False):
     """
     Inputs:
     datasets: list of files [train_files,val_files,test_files]

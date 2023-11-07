@@ -2,7 +2,7 @@ ARG TF_VERSION=2.10.0
 FROM tensorflow/tensorflow:${TF_VERSION}-gpu
 
 # Create non-root user.
-ARG USERNAME=vscode$USER
+ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
@@ -21,6 +21,8 @@ RUN apt-get update && \
     apt-get install -y git && \
     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
     apt-get install -y git-lfs
+
+RUN pip install --upgrade pip
 
 # To enable plotting.
 RUN apt-get update && \
@@ -56,19 +58,9 @@ RUN cd /opt && \
     cd spiral-waveform && \
     make install
 
-# Install TFMRI.
 ARG TFMRI_VERSION=0.22.0
-RUN apt-get update && \
-    apt-get install -y libopenexr-dev && \
-    cd /opt && \
-    git clone -b wip1200 --single-branch https://github.com/mrphys/tensorflow-mri.git && \
-    cd tensorflow-mri && \
-    make lib CXX=g++ && \
-    pip install .
-
 # Install tensorflow utilities.
-RUN pip install tensorflow-datasets tensorflow-addons tensorboard 
+RUN pip install tensorflow-datasets tensorflow-addons tensorboard tensorflow_mri==$TFMRI_VERSION
 
 # Install additional packages.
-RUN pip install ffmpeg-python scipy scikit-learn scikit-image ipykernel google-api-python-client pydicom jupyter
-
+RUN pip install ffmpeg-python scipy scikit-learn scikit-image ipykernel google-api-python-client pydicom jupyter opencv-python

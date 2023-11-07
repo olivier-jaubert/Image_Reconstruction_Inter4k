@@ -1,2 +1,7 @@
 TrainingFolder/*
+!TraingingFolder/Default_VarNet
+!TraingingFolder/Default_3DUNet
+!TraingingFolder/Default_FastDVDNet
+
 DatasetFolder/*
+!DatasetFolder/README.md

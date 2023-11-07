@@ -72,7 +72,6 @@ def load_models(inputs,model_type,config_model=dict(),DEBUG=False):
 
     elif model_type == '3DUNet':
         inputs=inputs[0]
-        print(inputs.shape)
         #Define and compile Model
         shape_input=(inputs.shape[-4],inputs.shape[-3],inputs.shape[-2],inputs.shape[-1])
         image_inputs= tf.keras.Input(shape_input,batch_size=inputs.shape[-5])
@@ -81,7 +80,6 @@ def load_models(inputs,model_type,config_model=dict(),DEBUG=False):
     
     elif model_type == 'FastDVDNet':
         inputs=inputs[0]
-        print(inputs.shape)
         #Define and compile Models
         shape_input=(inputs.shape[-3],inputs.shape[-2],5)
         image_inputs= tf.keras.Input(shape_input)

@@ -4,7 +4,7 @@ import tensorflow_addons as tfa
 import math
 import numpy as np
 import scipy.signal
-import tf_clahe
+
 rg = tf.random.Generator.from_seed(1, alg='philox')
 
 ## Default config
@@ -20,7 +20,7 @@ def config_default(base_resolution,phases):
           }
 
 ## Main Preprocessing Function
-def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=False, complex_transform=0,phases=None,regsnr=0,sigma_coil=4,add_phase=0,image_adjustment=[0,1],clahe=False):
+def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=False, complex_transform=0,phases=None,regsnr=0,sigma_coil=4,add_phase=0,image_adjustment=[0,1]):
   """Returns a preprocessing function for training."""
   def _preprocessing_fn(tfds_video):
     """From jpg to formatted kspace of image.
@@ -42,12 +42,10 @@ def preprocessing_fn(base_resolution=128,num_coils=10, masking=False, return_gt=
       if phases is None:
         phases=tf.shape(image_series[0])
       image_series=tfmri.resize_with_crop_or_pad(image_series,shape=[phases,base_resolution,base_resolution,-1])
-      if clahe:
-        image_series=tf_clahe.clahe(image_series, gpu_optimized=True)
 
-      image_series=tfmri.scale_by_min_max(image_series)
       #Contrast adjustments
       nonlocal image_adjustment
+      image_series=tfmri.scale_by_min_max(image_series)
       image_adjustment=tf.cast(image_adjustment,image_series.dtype)
       image_series=image_adjustment[0]+image_adjustment[1]*image_series
       image_series=tf.clip_by_value(image_series, 0, 1)

@@ -1,13 +1,17 @@
-Learning Dynamic MRI from publicly available Natural Videos
-======================================================================================
+Investigating the use of high spatio-temporal resolution publicly available natural videos to learn Dynamic MR image reconstruction
+====================================================================================================================================
 
 Synopsis: 
 ---------
 
+We use Inter4K \[1\] a high spatio-temporal resolution publicly available natural video dataset to learn Dynamic MR image reconstruction.
+
+Methods can be found in \[link\].
+
 Three networks and trajectories were investigated: 
-- Cartesian real-time with unrolled VarNet [ref]
-- Radial real-time with multicoil UNet [ref]
-- Low latency spiral imaging with FastDVDNet (Hyperslice [ref]) 
+- Cartesian real-time with unrolled VarNet \[2\]
+- Radial real-time with multicoil UNet
+- Low latency spiral imaging with FastDVDNet (Hyperslice \[3\]) 
 Provided code includes trajectories, model training and pre-trained models as implemented for the paper.
 
 The ethics does not allow sharing medical image data therefore only Inter4K data and models are made available. 
@@ -17,51 +21,35 @@ The ethics does not allow sharing medical image data therefore only Inter4K data
 Installation
 ============
 
-All required packages can be installed using conda in a virtual environment:
+For installation please:
+1) download github repository
+2) Download Inter4K Dataset and unzip in DatasetFolder (see DatasetFolder/README.md, )
+3) Create Docker image and run test training via:
+        ``` 
+        docker compose up --build
+        ```
 
-``` {.console}
-$ conda env create --name hyperslice --file environment.yml
-```
+This will run the command in the docker-compose.yaml file:
+-   command: python train_network.py -m 3DUNet --debug
+
+Which can be modified to :
+
+-   command: python train\_network.py -m 3DUNet # for full model 3DUNet radial training
+-   command: python train\_network.py -m FastDVDNet # for FastDVDNet Spiral training
+-   command: python train\_network.py -m VarNet # for VarNet Cartesian training
+
+4) Can be used with VScode (.devcontainer folder) for development within the docker container.
 
 Note that only Linux is supported.
 
-Training and testing
-====================
-
-Once the environment created, activate using:
-
-``` {.console}
-$ conda activate hyperslice
-```
-
-You can then run:
-
--   the python file example.py file from project directory.
-
-``` {.console}
-$ python example.py
-```
-
--   or the ipython notebook example.ipynb (to see intermediate results)
-
 Results are saved in ./Training\_folder (as in the already trained
-exemple model ./Training\_folder/Exemple\_Trained\_FastDVDnet)
-
-Logs can be visualised using tensorboard:
-
-``` {.console}
-$ tensorboard --logdir path_to_directory
-```
+exemple models ./Training\_folder/Default\_FastDVDNet)
 
 Acknowledgments
 ===============
 
-Network architecture inspired from original FastDVDnet \[1\].
-Code relies heavily on TensorFlow \[2\] and TensorFlow\_MRI \[3\].
+\[1\] Stergiou, A., & Poppe, R. (2023). AdaPool: Exponential Adaptive Pooling for Information-Retaining Downsampling. IEEE Transactions on Image Processing, 32, 251–266. https://doi.org/10.1109/TIP.2022.3227503
 
-\[1\] ​​Tassano, M., Delon, J., & Veit, T. (2020). FastDVDnet: Towards Real-Time Deep Video Denoising Without Flow Estimation. 2020 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 1351–1360.
+\[2\] Hammernik, K., Klatzer, T., Kobler, E., Recht, M. P., Sodickson, D. K., Pock, T., & Knoll, F. (2018). Learning a variational network for reconstruction of accelerated MRI data. Magnetic Resonance in Medicine, 79(6), 3055–3071. https://doi.org/10.1002/mrm.26977
 
-\[2\] Abadi M, Barham P, Chen J, et al. TensorFlow: A System for Large-Scale Machine Learning TensorFlow: A system for large-scale machine learning. Proceedings of the 12th USENIX Symposium on Operating Systems Design and Implementation 2016:265--283.
-
-\[3\] Montalt Tordera J. TensorFlow MRI. 2022 doi:10.5281/ZENODO.7120930.
-https://pypi.org/project/tensorflow-mri/
+\[3\] Jaubert, O., Montalt-Tordera, J., Knight, D., Arridge, S., Steeden, J., & Muthurangu, V. (2023). HyperSLICE: HyperBand optimized spiral for low-latency interactive cardiac examination. Magnetic Resonance in Medicine. https://doi.org/10.1002/MRM.29855

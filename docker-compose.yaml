@@ -4,20 +4,13 @@ services:
     build:
       context: ./.devcontainer
     image: ${USER}/${PROJECT_NAME}
+
     volumes:
-      - type: bind
-        source: /home/oj20/UCLjob/Project_Video/Datasets/
-        target: /datasets
-      - type: bind
-        source: /home/oj20/UCLjob/
-        target: /host/
       - type: bind
         source: .
         target: /workspaces/${PROJECT_NAME}
-
-    #command: ["/workspaces/${PROJECT_NAME}/command.sh"]
-    #command: pwd
-    command: nohup python /workspaces/${PROJECT_NAME}/train_VarNet.py > trainVarNet.log & 
+    working_dir: /workspaces/${PROJECT_NAME}
+    command: python train_network.py -m 3DUNet --debug
     deploy:
       resources:
         reservations:
