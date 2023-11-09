@@ -40,10 +40,6 @@ This will run the command in the docker-compose.yaml file:
 -   command: python download_Inter4k_Dataset.py
 
 3) Test training by changing the command in the docker-compose.yaml file.
-Then run:
-``` 
-docker compose up --build
-```
 
 Which can be modified to :
 
@@ -51,12 +47,16 @@ Which can be modified to :
 -   command: python train\_network.py -m FastDVDNet # for FastDVDNet Spiral training
 -   command: python train\_network.py -m VarNet # for VarNet Cartesian training
 
+Then run:
+``` 
+docker compose up
+```
+
 4) Can be used with VScode (.devcontainer folder) for development within the docker container.
 
 Note that only Linux is supported.
 
-Results are saved in ./Training\_folder (as in the already trained
-exemple models ./Training\_folder/Default\_FastDVDNet)
+Results are saved in ./Training\_folder (as in the already trained example models ./Training\_folder/Default\_FastDVDNet)
 
 Acknowledgments
 ===============
