@@ -53,12 +53,12 @@ tf.random.set_seed(seed_value)
 ("")
 
 # Dataset and preprocessings 
-exp_name='Default_'+model_type if not DEBUG else 'Default_'+model_type+'_DEBUG'
+exp_name='FullInter4k_'+model_type if not DEBUG else 'Default_'+model_type+'_DEBUG'
 data_folder = './DatasetFolder/Inter4K/60fps/UHD/'
-cache_dir = './DatasetFolder/DEBUG/' if DEBUG else './DatasetFolder/'
+cache_dir = './DatasetFolder/Full/DEBUG/' if DEBUG else './DatasetFolder/Full/'
 
 #Total number of samples from dataset used 
-n= 12 if DEBUG else 692
+n= 12 if DEBUG else -1
 
 #Reset parameter: 
 #2 for full repreprocessing from original Inter4K.
@@ -67,7 +67,7 @@ n= 12 if DEBUG else 692
 reset=2
 
 #Selecting files and splitting train/val/test 
-filenames_datasets=dataset_utils.split_training_test_set(data_folder,n=n,split=[0.75,0.10,0.15],verbose=1)
+filenames_datasets=dataset_utils.split_training_test_set(data_folder,n=n,split=[0.945,0.05,0.005],verbose=1)
 #Resizing Original Inter4K videos
 preproc_datasets=dataset_utils.run_load_preproc_dataset(filenames_datasets,cache_dir,reset=reset)
 #Creating Datasets Corresponding to Acquisition and reconstruction method

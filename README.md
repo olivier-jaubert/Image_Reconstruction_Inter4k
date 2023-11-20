@@ -32,24 +32,24 @@ Installation
 
 For installation please:
 1) Download github repository.
-2) Create Docker image and download and unzip Inter4K Dataset in DatasetFolder (see DatasetFolder/README.md if does not work): 
+
+2) From Project folder, create Docker image and launch interactive docker container: 
 ```
-docker compose up --build
+docker compose up --build -d
 ```   
-This will run the command in the docker-compose.yaml file:
--   command: python download_Inter4k_Dataset.py
 
-3) Test training by changing the command in the docker-compose.yaml file.
-Then run:
-``` 
-docker compose up --build
+3) Download and unzip Inter4K Dataset in DatasetFolder (see DatasetFolder/README.md if does not work):
+```
+docker compose exec tensorflow python download_Inter4k_Dataset.py
 ```
 
-Which can be modified to :
+3) Test training by using one of the following commands :
 
--   command: python train\_network.py -m 3DUNet # for full model 3DUNet radial training
--   command: python train\_network.py -m FastDVDNet # for FastDVDNet Spiral training
--   command: python train\_network.py -m VarNet # for VarNet Cartesian training
+```
+docker compose exec tensorflow python train\_network.py -m VarNet # for VarNet Cartesian training (longest)
+docker compose exec tensorflow python train\_network.py -m 3DUNet # for full model 3DUNet radial training
+docker compose exec tensorflow python train\_network.py -m FastDVDNet # for FastDVDNet Spiral training
+```
 
 4) Can be used with VScode (.devcontainer folder) for development within the docker container.
 

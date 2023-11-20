@@ -10,7 +10,8 @@ services:
         source: .
         target: /workspaces/${PROJECT_NAME}
     working_dir: /workspaces/${PROJECT_NAME}
-    command: python download_Inter4k_Dataset.py
+    stdin_open: true 
+    tty: true
     deploy:
       resources:
         reservations:

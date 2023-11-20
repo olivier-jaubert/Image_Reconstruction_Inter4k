@@ -106,7 +106,7 @@ def run_load_preproc_dataset(datasets,dataset_dir,reset=1):
     os.makedirs(cache_initial,exist_ok=True)
     os.makedirs(cache_initial_val,exist_ok=True)
     os.makedirs(cache_initial_test,exist_ok=True)
-
+    print('Preprocessing Videos - Might take a while on first try then if reset is set to 1 will take previously preprocessed data -')
     counter=0
     preproc_datasets=[]
     for pp,dataset in enumerate(datasets):
@@ -122,6 +122,7 @@ def run_load_preproc_dataset(datasets,dataset_dir,reset=1):
             dataset=dataset.cache(cache_initial_test)
         preproc_datasets.append(dataset)
         if reset == 2 or not os.path.exists(cache_initial):
+            
             for element in preproc_datasets[pp]:
                 counter+=1
                 print('Counter Preprocessing Video N:',counter,end='\r')
