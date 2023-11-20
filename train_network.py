@@ -64,7 +64,7 @@ n= 12 if DEBUG else 692
 #2 for full repreprocessing from original Inter4K.
 #1 from preprocessed resized video (recommended).
 #0 from cached data from previous run.
-reset=2
+reset=1
 
 #Selecting files and splitting train/val/test 
 filenames_datasets=dataset_utils.split_training_test_set(data_folder,n=n,split=[0.75,0.10,0.15],verbose=1)
