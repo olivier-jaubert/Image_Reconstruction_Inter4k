@@ -51,10 +51,6 @@ docker compose exec tensorflow python train\_network.py -m 3DUNet # for full mod
 docker compose exec tensorflow python train\_network.py -m FastDVDNet # for FastDVDNet Spiral training
 ```
 
-Then run:
-``` 
-docker compose up
-```
 
 4) Can be used with VScode (.devcontainer folder) for development within the docker container.
 
