@@ -27,8 +27,8 @@ The ethics does not allow sharing medical image data therefore only Inter4K data
 
 ------------------------------------------------------
 
-Installation
-============
+Installation and use
+====================
 
 For installation please:
 1) Download github repository.
@@ -43,20 +43,31 @@ docker compose up --build -d
 docker compose exec tensorflow python download_Inter4k_Dataset.py
 ```
 
-3) Test training by using one of the following commands :
+4) Test training by using one of the following commands :
 
 ```
-docker compose exec tensorflow python train\_network.py -m VarNet # for VarNet Cartesian training (longest)
-docker compose exec tensorflow python train\_network.py -m 3DUNet # for full model 3DUNet radial training
-docker compose exec tensorflow python train\_network.py -m FastDVDNet # for FastDVDNet Spiral training
+nohup docker compose exec tensorflow python train\_network.py -m VarNet > training_VarNet.log & # for VarNet Cartesian training (longest)
+nohup docker compose exec tensorflow python train\_network.py -m 3DUNet > training_3DUNet.log & # for full model 3DUNet radial training
+nohup docker compose exec tensorflow python train\_network.py -m FastDVDNet > training_FastDVDNet.log & # for FastDVDNet Spiral training
 ```
 
+5) Shut down docker container:
 
-4) Can be used with VScode (.devcontainer folder) for development within the docker container.
+```
+docker compose down
+```   
+
+0) Alternatively can be used with VScode (.devcontainer folder) for development within the docker container.
 
 Note that only Linux is supported.
 
 Results are saved in ./Training\_folder (as in the already trained example models ./Training\_folder/Default\_FastDVDNet)
+
+Logs can also be visualised by using tensorboard:
+
+```
+tensorboard --logdir ./Training\_folder/Default\_FastDVDNet
+```  
 
 Acknowledgments
 ===============
