@@ -6,4 +6,4 @@ TrainingFolder/*
 DatasetFolder/*
 !DatasetFolder/README.md
 
-train_network_fulldataset.py
+./train_network_fulldataset.py
