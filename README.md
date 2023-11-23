@@ -14,7 +14,9 @@ Three networks and trajectories were investigated:
 - Radial real-time with multicoil UNet
 - Low latency spiral imaging with FastDVDNet (Hyperslice \[3\]) 
 
-https://github.com/olivier-jaubert/Image_Reconstruction_Inter4k/blob/master/Figures/VideoInter4K.mp4
+
+https://github.com/olivier-jaubert/Image_Reconstruction_Inter4k/assets/68073827/c98a2ea3-6173-4067-af3d-d92d37e7bbe7
+
 
 - Top Line: RGB Video, Undersampled Cartesian, Undersampled Radial, Undersampled Spiral.
 
